@@ -1,7 +1,7 @@
 # Quantum Neural Network PQC
 
-> **Domain:** Post-Quantum Cryptography & Zero-Knowledge Architecture  
-> **Reference Guidelines & Standards:** `NIST FIPS 203/204/205, NIST SP 800-90B & ISO/IEC Standards`
+> **Domain:** Post-Quantum Cryptography & Quantum Machine Learning  
+> **Standards:** NIST FIPS 203/204/205, ISO/IEC 17825, QML Parameter-Shift Rule Standard
 
 <div align="center">
 
@@ -9,8 +9,6 @@
 ![Python](https://img.shields.io/badge/Python-3.10%20%7C%203.11%20%7C%203.12-3776AB.svg?logo=python&logoColor=white)
 ![FastAPI](https://img.shields.io/badge/FastAPI-0.111-009688.svg?logo=fastapi&logoColor=white)
 ![Audit Trail](https://img.shields.io/badge/Audit-HMAC--SHA256_Tamper--Evident-brightgreen.svg)
-![Zero-PHI Guard](https://img.shields.io/badge/Guard-Zero--PHI_Outbound-blue.svg)
-![Docker](https://img.shields.io/badge/Docker-Ready-2496ED.svg?logo=docker&logoColor=white)
 
 </div>
 
@@ -18,64 +16,100 @@
 
 ## 📖 What It Does
 
-Quantum Neural Network Pqc
+Quantum Neural Network PQC is a multi-agent evaluation framework that processes task payloads through specialized worker agents to produce consensus dossiers with cryptographic audit trails. It provides:
+
+- **Multi-Agent Task Evaluation**: Distributed worker agents (InvariantQC, SafetyEscalation, ProtocolConformance) evaluate payloads against domain thresholds
+- **Consensus Dossier Generation**: Aggregated results with urgency classification and integrity status
+- **Cryptographic Audit Trail**: HMAC-SHA256 tamper-evident logging of all operations
+- **PHI Outbound Guard**: Prevents sensitive data leakage via regex pattern detection
+- **FastAPI REST API**: HTTP endpoints for task processing and system monitoring
+- **Batch CSV Processing**: High-throughput batch evaluation of task records
 
 ---
 
-## ⚙️ Key Capabilities & Algorithmic Modules
+## ⚙️ Architecture
 
-- **Deterministic Calculation Engine**: Strict compliance with standard reference formulations and thresholds.
-- **Risk & Urgency Classification**: Multi-tier categorization with automated clinical/operational action recommendations.
-- **Validation & Guardrails**: Rigorous input bounds checking and anomaly detection.
+### Agent Framework (`agents/`)
+- **SystemSupervisor**: Master orchestrator coordinating worker evaluations
+- **InvariantQCWorker**: Primary metric boundary auditor (threshold: 25.0)
+- **SafetyEscalationWorker**: Critical safety interlock (threshold: 12.0 secondary)
+- **ProtocolConformanceWorker**: Specification conformance checker
+- **PHIGuard**: Zero-PHI outbound interceptor with regex pattern detection
+- **AuditLogger**: HMAC-SHA256 chained cryptographic audit trail
+- **FastAPI Server**: REST endpoints at `/api/audit`, `/api/chat`, `/metrics`, `/health`
+
+### QNN PQC Agent (`qnn_pqc_agent/`)
+- **QNNCoordinator**: Executive coordinator for quantum ML evaluations
+- **FrontierDomainEngine**: Core algorithmic engine with parameter-shift rule
+- **DataReuploadingEncoderAgent**: Primary parameter auditor
+- **VariationalLayerAgent**: Critical kinetics safeguard
+- **ParameterShiftGradientAgent**: Protocol conformance triager
+
+### Enrichment Suite (`enrichment.py`)
+- Parameter-Shift Rule with Gradient Variance Reduction
+- Hardware-Efficient PQC with Entangling Layer Optimization
+- Composite enrichment suite for domain-specific evaluations
 
 ---
 
-## 💻 CLI Quickstart & Usage
+## 💻 Installation
 
-### 1. Guided Interactive Mode
 ```bash
-python cli.py
+pip install fastapi uvicorn pydantic pytest
 ```
 
-### 2. Direct Parameterized Evaluation
+---
+
+## 🚀 CLI Usage
+
+### 1. Single Task Evaluation
 ```bash
-python cli.py --task-id <value> --target <value> --primary <value> --secondary <value>
+python cli.py audit --task-id TASK-001 --target KEY-01 --primary 28.5 --secondary 14.2 --critical --status DISCORDANT
 ```
 
-### Parameter Reference
-- `--task-id`: Specifies input measurement or parameter value.
-- `--target`: Specifies input measurement or parameter value.
-- `--primary`: Specifies input measurement or parameter value.
-- `--secondary`: Specifies input measurement or parameter value.
-- `--critical`: Specifies input measurement or parameter value.
-- `--status`: Specifies input measurement or parameter value.
-- `--input`: Specifies input measurement or parameter value.
-- `--output`: Specifies input measurement or parameter value.
+### 2. Supervisor Chat Query
+```bash
+python cli.py chat "What is the system status?"
+```
 
-### Input Data Schema
+### 3. Batch CSV Processing
+```bash
+python cli.py batch -i sample.csv -o results.csv
+```
 
-| Field | Description | Requirement |
-|:------|:------------|:------------|
-| `task_id` | Parameter / observation metric | Required |
-| `target_identifier` | Parameter / observation metric | Required |
-| `primary_metric` | Parameter / observation metric | Required |
-| `secondary_metric` | Parameter / observation metric | Required |
-| `is_critical_flag` | Parameter / observation metric | Required |
-| `status_descriptor` | Parameter / observation metric | Required |
+### 4. Verify Audit Trail Integrity
+```bash
+python cli.py verify-audit
+```
 
----
+### 5. Launch REST API Server
+```bash
+python cli.py serve --host 127.0.0.1 --port 8000
+```
 
-## 🛡️ Security & Enterprise Architecture
-
-* **Zero-PHI Outbound Interceptor:** Active AST and regex inspection blocking SSNs, MRNs, phone numbers, and patient identifiers.
-* **Tamper-Evident HMAC-SHA256 Audit Trail:** Chained, cryptographically signed logs for every evaluation and state transition.
-* **Air-Gapped LLM Reasoning Adapter:** Agnostic integration for local Ollama instances (`llama3`, `mistral`), Claude 3.5 Sonnet, GPT-4o, and deterministic test mocks.
-* **Active Learning Bayesian Calibration:** Dynamic tracker updating worker reliability weights and monitoring Brier calibration drift.
-* **FastAPI & Prometheus Telemetry:** Exposes OpenAPI 3.1 REST endpoints and operational Prometheus metrics (`/metrics`).
+### 6. Run Simulation Benchmark
+```bash
+python simulator.py 1000
+```
 
 ---
 
-## 🧪 Testing & Verification
+## 🛡️ Security Features
+
+- **Zero-PHI Outbound Interceptor**: Active regex inspection blocking SSNs, MRNs, phone numbers, emails, and patient identifiers
+- **Tamper-Evident HMAC-SHA256 Audit Trail**: Chained, cryptographically signed logs for every evaluation
+- **Cryptographic Key Management**: Secure random key generation when `AUDIT_SECRET_KEY` environment variable is not set
+- **Input Validation**: Pydantic models with strict type checking and bounds validation
+
+### Environment Variables
+| Variable | Description | Default |
+|:---------|:------------|:--------|
+| `AUDIT_SECRET_KEY` | HMAC-SHA256 signing key | Random (generated per session) |
+| `MODEL_PROVIDER` | LLM provider selection | `mock` |
+
+---
+
+## 🧪 Testing
 
 Run the automated test suite:
 
@@ -83,17 +117,71 @@ Run the automated test suite:
 pytest -v
 ```
 
-Execute high-throughput batch simulation benchmarks:
+Test coverage includes:
+- PHI guard enforcement
+- Specialized worker evaluations
+- Supervisor consensus and audit integrity
+- CLI command validation
+- Enrichment suite execution
+
+---
+
+## 🐳 Docker Deployment
 
 ```bash
-python simulator.py --tasks 1000 --concurrency 8
+docker build -t quantum-neural-network-pqc .
+docker run -p 8000:8000 -e AUDIT_SECRET_KEY=$(openssl rand -hex 32) quantum-neural-network-pqc
+```
+
+Or using Docker Compose:
+
+```bash
+AUDIT_SECRET_KEY=$(openssl rand -hex 32) docker compose up
 ```
 
 ---
 
-## 🐳 Container Deployment
+## 📊 Prometheus Metrics
 
-```bash
-docker build -t quantum-neural-network-pqc .
-docker run -p 8000:8000 quantum-neural-network-pqc
+Access operational metrics at `http://localhost:8000/metrics`:
+
+- `system_tasks_total`: Total tasks processed
+- `alerts_triggered_total`: Alerts by urgency tier
+- `phi_outbound_blocks_total`: PHI interception count
+- `audit_chain_blocks_total`: Audit blocks signed
+- `task_processing_duration_avg_seconds`: Average evaluation latency
+
+---
+
+## 📁 Project Structure
+
+```
+quantum-neural-network-pqc/
+├── agents/               # Enterprise agent framework
+│   ├── api.py           # FastAPI REST server
+│   ├── base.py          # Security, PHI guard, audit trail
+│   ├── models.py        # Pydantic data models
+│   ├── supervisor.py    # Master orchestrator
+│   ├── workers.py       # Specialized worker agents
+│   ├── llm_factory.py   # LLM provider factory
+│   ├── learning.py      # Bayesian calibration engine
+│   ├── metrics.py       # Prometheus metrics collector
+│   └── streamer.py      # WebSocket telemetry broadcaster
+├── qnn_pqc_agent/        # QNN PQC agent framework
+│   ├── agents.py        # Sub-agents and coordinator
+│   ├── engine.py        # Core algorithmic engine
+│   ├── models.py        # Data models
+│   ├── cli.py           # CLI interface
+│   └── server.py        # FastAPI server factory
+├── tests/               # Pytest test suite
+├── web/                 # Web operations console
+├── cli.py               # Main CLI entry point
+├── simulator.py         # High-throughput simulation
+├── enrichment.py        # Domain enrichment suite
+├── sample.csv           # Sample batch input
+├── sample_payload.json  # Sample API payload
+├── benchmark_dataset.json # Golden benchmark test cases
+├── Dockerfile           # Container build
+├── docker-compose.yml   # Container orchestration
+└── pyproject.toml       # Project metadata
 ```

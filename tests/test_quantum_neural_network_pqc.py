@@ -3,12 +3,14 @@ Automated Pytest Test Suite for Quantum Neural Network Pqc.
 Domain: Post-Quantum Cryptography & Hardware Security
 Standard: NIST FIPS 203/204/205 / ISO/IEC 17825 Standards
 """
+import os
 import sys
+import tempfile
 from pathlib import Path
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
 import pytest
-from agents.base import PHIGuard, AuditLogger, SecurityException
+from agents.base import PHIGuard, AuditLogger, AuditTrail, SecurityException
 from agents.models import SystemTaskPayload, UrgencyLevel, SystemIntegrityStatus
 from agents.workers import InvariantQCWorker, SafetyEscalationWorker, ProtocolConformanceWorker
 from agents.supervisor import SystemSupervisor
@@ -21,6 +23,14 @@ def test_phi_guard_enforcement():
 
     # Clean text passes
     PHIGuard.assert_no_phi("Analytical assay specimen KEY-001 optimal")
+
+
+def test_phi_guard_redaction():
+    text_with_phi = "Contact patient at 555-123-4567 or email test@example.com"
+    redacted = PHIGuard.redact_phi(text_with_phi)
+    assert "555-123-4567" not in redacted
+    assert "test@example.com" not in redacted
+    assert "[REDACTED_IDENTIFIER]" in redacted
 
 
 def test_specialized_workers():
@@ -63,3 +73,66 @@ def test_supervisor_consensus_and_audit():
     assert main(["audit", "--task-id", "CLI-TEST-01"]) == 0
     assert main(["chat", "Explain", "specifications"]) == 0
     assert main(["verify-audit"]) == 0
+
+
+def test_audit_trail_integrity():
+    """Test that audit trail detects tampering."""
+    trail = AuditTrail(secret_key="test-key-for-integrity")
+    trail.log("test_actor", "test_tier", "TEST_EVENT", {"data": "value1"})
+    trail.log("test_actor", "test_tier", "TEST_EVENT", {"data": "value2"})
+    assert trail.verify_integrity() is True
+    assert len(trail.get_trail()) == 2
+
+
+def test_audit_trail_uses_random_key_when_not_set():
+    """Test that AuditTrail generates a secure random key when none is provided."""
+    # Ensure env var is not set
+    original_key = os.environ.pop("AUDIT_SECRET_KEY", None)
+    try:
+        trail1 = AuditTrail()
+        trail2 = AuditTrail()
+        # Two instances should have different random keys
+        assert trail1.secret_key != trail2.secret_key
+    finally:
+        if original_key:
+            os.environ["AUDIT_SECRET_KEY"] = original_key
+
+
+def test_cli_batch_file_not_found():
+    """Test batch command handles missing input file gracefully."""
+    result = main(["batch", "-i", "nonexistent_file.csv"])
+    assert result == 1
+
+
+def test_cli_batch_with_sample_csv():
+    """Test batch command processes sample CSV correctly."""
+    with tempfile.NamedTemporaryFile(mode='w', suffix='.csv', delete=False, newline='') as f:
+        f.write("task_id,target_identifier,primary_metric,secondary_metric,is_critical_flag,status_descriptor\n")
+        f.write("BATCH-T1,TARGET-B1,28.4,14.2,True,DISCORDANT\n")
+        f.write("BATCH-T2,TARGET-B2,12.0,4.1,False,NOMINAL\n")
+        input_path = f.name
+
+    output_path = input_path.replace('.csv', '_output.csv')
+    try:
+        result = main(["batch", "-i", input_path, "-o", output_path])
+        assert result == 0
+        assert os.path.exists(output_path)
+    finally:
+        os.unlink(input_path)
+        if os.path.exists(output_path):
+            os.unlink(output_path)
+
+
+def test_empty_payload_no_alerts():
+    """Test that a nominal payload produces no alerts."""
+    supervisor = SystemSupervisor(model_provider="mock")
+    payload = SystemTaskPayload(
+        task_id="NOMINAL-01",
+        target_identifier="KEY-NOMINAL",
+        primary_metric=10.0,
+        secondary_metric=3.0,
+        status_descriptor="NOMINAL"
+    )
+    dossier = supervisor.process_task(payload)
+    assert dossier.overall_urgency == UrgencyLevel.ROUTINE
+    assert dossier.total_alerts == 0
