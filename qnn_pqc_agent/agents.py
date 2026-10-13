@@ -3,6 +3,7 @@ Distributed Component Coordination & Executive Hierarchy for Parameterized Quant
 Domain: Quantum Machine Learning
 """
 import uuid
+import math
 from typing import Dict, Any, List, Optional
 from .models import FrontierPayload, AgentTelemetryAlert, ExecutionStatus
 from .engine import FrontierDomainEngine
@@ -68,6 +69,10 @@ class QNNCoordinator:
         self.execution_ledger: Dict[str, Dict[str, Any]] = {}
 
     def process(self, payload: FrontierPayload) -> Dict[str, Any]:
+        for name in ("primary_metric", "secondary_metric"):
+            value = getattr(payload, name)
+            if isinstance(value, bool) or not isinstance(value, (int, float)) or not math.isfinite(value):
+                raise ValueError(f"{name} must be a finite number")
         all_alerts: List[AgentTelemetryAlert] = []
         all_alerts.extend(self.sub_1.audit(payload))
         all_alerts.extend(self.sub_2.audit(payload))

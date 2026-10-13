@@ -4,12 +4,25 @@ Command Line Interface for Quantum Neural Network Pqc.
 import argparse
 import csv
 import json
+import re
 import sys
 from agents.models import SystemTaskPayload
 from agents.supervisor import SystemSupervisor
-from agents.base import AuditLogger
+from agents.base import AuditLogger, SecurityException
 
 supervisor = SystemSupervisor(model_provider="mock")
+
+
+def _spreadsheet_safe(value):
+    """Protect formula-leading text while preserving ordinary signed numbers."""
+    if not isinstance(value, str):
+        return value
+    stripped = value.lstrip()
+    if stripped.startswith(("=", "+", "-", "@")):
+        if re.fullmatch(r"[+-]?(?:\d+(?:\.\d*)?|\.\d+)(?:[Ee][+-]?\d+)?", stripped):
+            return value
+        return "'" + value
+    return value
 
 
 def main(argv=None):
@@ -56,7 +69,7 @@ def main(argv=None):
         dossier = supervisor.process_task(payload)
         print("=" * 80)
         print(f"  QUANTUM NEURAL NETWORK PQC")
-        print(f"  Domain: Post-Quantum Cryptography & Hardware Security | Standard: NIST FIPS 203/204/205 / ISO/IEC 17825 Standards")
+        print(f"  Domain: Post-Quantum Cryptography & Hardware Security | Standard: illustrative local threshold rules (not a standards compliance test)")
         print(f"  Dossier ID: {dossier.dossier_id} | Urgency: [{dossier.overall_urgency.value}]")
         print("=" * 80)
         for a in dossier.alerts:
@@ -95,7 +108,11 @@ def main(argv=None):
         if not rows:
             print(f"Warning: No data rows found in '{args.input}'.", file=sys.stderr)
 
-        out_fields = fieldnames + ["overall_urgency", "integrity_status", "total_alerts", "audit_hash"]
+        if not fieldnames or len(fieldnames) != len(set(fieldnames)):
+            print("Error: CSV header must contain unique column names.", file=sys.stderr)
+            return 1
+        result_fields = ["overall_urgency", "integrity_status", "total_alerts", "audit_hash"]
+        out_fields = fieldnames + [name for name in result_fields if name not in fieldnames]
         out_rows = []
         errors = 0
         for idx, r in enumerate(rows, start=1):
@@ -109,13 +126,14 @@ def main(argv=None):
                     is_critical_flag=str(r.get("is_critical_flag", "")).lower() in ("true", "1", "yes"),
                 )
                 dossier = supervisor.process_task(payload)
-                row_dict = dict(r)
+                # Escape formula-leading cells before spreadsheet export.
+                row_dict = {key: _spreadsheet_safe(value) for key, value in r.items() if key is not None}
                 row_dict["overall_urgency"] = dossier.overall_urgency.value
                 row_dict["integrity_status"] = dossier.integrity_status.value
                 row_dict["total_alerts"] = dossier.total_alerts
                 row_dict["audit_hash"] = dossier.audit_hash
                 out_rows.append(row_dict)
-            except (ValueError, TypeError) as e:
+            except (ValueError, TypeError, SecurityException) as e:
                 print(f"Warning: Skipping row {idx} due to invalid data: {e}", file=sys.stderr)
                 errors += 1
 

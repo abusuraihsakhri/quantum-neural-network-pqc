@@ -24,11 +24,21 @@ jobs:
     - name: Install dependencies
       run: |
         python -m pip install --upgrade pip
-        pip install fastapi uvicorn pydantic pytest
+        python -m pip install -e ".[server,test]"
+
+    - name: Check critical Python lint rules
+      run: |
+        python -m pip install ruff
+        ruff check --select E9,F63,F7,F82 .
+
+    - name: Python syntax checks
+      run: python -m compileall -q agents qnn_pqc_agent cli.py enrichment.py simulator.py tests
 
     - name: Run Pytest Suite
-      run: |
-        pytest -v
+      run: python -m pytest -q
+
+    - name: Verify browser evaluation
+      run: node --test tests/test_browser.cjs
 
     - name: Security SAST & Zero-PHI Audit
       run: |
