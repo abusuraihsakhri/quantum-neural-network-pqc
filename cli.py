@@ -19,7 +19,7 @@ def _spreadsheet_safe(value):
         return value
     stripped = value.lstrip()
     if stripped.startswith(("=", "+", "-", "@")):
-        if re.fullmatch(r"[+-]?(?:\\d+(?:\\.\\d*)?|\\.\\d+)(?:[Ee][+-]?\\d+)?", stripped):
+        if re.fullmatch(r"[+-]?(?:\d+(?:\.\d*)?|\.\d+)(?:[Ee][+-]?\d+)?", stripped):
             return value
         return "'" + value
     return value
