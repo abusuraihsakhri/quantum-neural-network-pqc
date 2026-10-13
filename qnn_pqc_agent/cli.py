@@ -4,11 +4,23 @@ Command-Line Interface for Parameterized Quantum Circuit (PQC) Quantum Neural Ne
 import argparse
 import csv
 import json
+import re
 import sys
 from .models import FrontierPayload
 from .agents import QNNCoordinator
 
 coordinator = QNNCoordinator()
+
+
+def _safe_csv_cell(value):
+    if not isinstance(value, str):
+        return value
+    stripped = value.lstrip()
+    if stripped.startswith(("=", "+", "-", "@")):
+        if re.fullmatch(r"[+-]?(?:\d+(?:\.\d*)?|\.\d+)(?:[Ee][+-]?\d+)?", stripped):
+            return value
+        return "'" + value
+    return value
 
 
 def main(argv=None):
@@ -74,7 +86,10 @@ def main(argv=None):
             fieldnames = list(reader.fieldnames or [])
             rows = list(reader)
 
-        out_fields = fieldnames + ["overall_status", "total_alerts", "critical_count", "consensus_summary"]
+        out_fields = fieldnames + [
+            name for name in ("overall_status", "total_alerts", "critical_count", "consensus_summary")
+            if name not in fieldnames
+        ]
         out_rows = []
         for r in rows:
             payload = FrontierPayload(
@@ -86,7 +101,7 @@ def main(argv=None):
                 is_critical_flag=str(r.get("is_critical_flag", "false")).strip().lower() in ("true", "1", "yes"),
             )
             dossier = coordinator.process(payload)
-            row_dict = dict(r)
+            row_dict = {key: _safe_csv_cell(value) for key, value in r.items() if key is not None}
             row_dict["overall_status"] = dossier["overall_status"]
             row_dict["total_alerts"] = dossier["total_alerts"]
             row_dict["critical_count"] = dossier["critical_count"]
