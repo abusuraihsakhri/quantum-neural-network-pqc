@@ -1,0 +1,71 @@
+"""Regression coverage for audit integrity, input boundaries and CSV export."""
+import csv
+
+import pytest
+from pydantic import ValidationError
+
+from agents.base import AuditTrail, SecurityException
+from agents.models import SystemTaskPayload
+from agents.supervisor import SystemSupervisor
+from cli import main
+from simulator import run_simulation
+
+
+@pytest.mark.parametrize("field", ["actor", "timestamp", "event_type", "payload_hash", "current_hash"])
+def test_signature_verification_rejects_field_tampering(field):
+    trail = AuditTrail(secret_key="integration-test-only")
+    trail.log("operator", "supervisor", "EVALUATE", {"task_id": "T1"})
+    trail.log("operator", "supervisor", "EVALUATE", {"task_id": "T2"})
+    assert trail.verify_integrity()
+    trail.logs[0][field] = "malicious modification"
+    assert not trail.verify_integrity()
+
+
+def test_audit_trail_returns_detached_records():
+    trail = AuditTrail(secret_key="integration-test-only")
+    trail.log("operator", "supervisor", "EVALUATE", {"task_id": "T1"})
+    snapshot = trail.get_trail()
+    snapshot[0]["actor"] = "untrusted"
+    snapshot.append({"fake": "entry"})
+    assert len(trail.get_trail()) == 1
+    assert trail.get_trail()[0]["actor"] == "operator"
+    assert trail.verify_integrity()
+
+
+@pytest.mark.parametrize("value", [float("nan"), float("inf"), float("-inf")])
+def test_metric_rejects_nonfinite(value):
+    with pytest.raises(ValidationError):
+        SystemTaskPayload(task_id="T1", target_identifier="TARGET", primary_metric=value)
+
+
+def test_guard_inspects_attributes_before_logging():
+    supervisor = SystemSupervisor()
+    payload = SystemTaskPayload(
+        task_id="T1", target_identifier="TARGET", primary_metric=1.0,
+        attributes={"contact": "test@example.com"},
+    )
+    with pytest.raises(SecurityException):
+        supervisor.process_task(payload)
+
+
+def test_csv_export_escapes_formula_cells(tmp_path):
+    src = tmp_path / "data.csv"
+    dst = tmp_path / "out.csv"
+    src.write_text(
+        "task_id,target_identifier,primary_metric,secondary_metric,status_descriptor,is_critical_flag\n"
+        "T1,=1+2,25,12,NOMINAL,false\n"
+        "T2,TARGET2,25.1,12.1,NOMINAL,true\n",
+        encoding="utf-8",
+    )
+    assert main(["batch", "-i", str(src), "-o", str(dst)]) == 0
+    with dst.open(newline="", encoding="utf-8") as stream:
+        rows = list(csv.DictReader(stream))
+    assert rows[0]["target_identifier"] == "'=1+2"
+    assert rows[0]["overall_urgency"] == "ROUTINE"
+    assert rows[1]["overall_urgency"] == "CRITICAL_STAT_PANIC"
+    assert rows[1]["total_alerts"] == "2"
+
+
+def test_simulator_rejects_zero_iterations():
+    with pytest.raises(ValueError, match="positive"):
+        run_simulation(0)
