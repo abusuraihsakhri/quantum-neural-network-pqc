@@ -77,5 +77,5 @@ class SystemSupervisor:
 
     def query_supervisory_chat(self, query: str) -> str:
         PHIGuard.assert_no_phi(query)
-        prompt = f"Supervisor inquiry for Quantum Neural Network Pqc under NIST FIPS 203/204/205 / ISO/IEC 17825 Standards: {query}"
+        prompt = f"Supervisor inquiry for Quantum Neural Network Pqc under illustrative local threshold rules (not a standards compliance test): {query}"
         return self.llm.invoke(prompt)
