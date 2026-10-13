@@ -29,3 +29,7 @@ quantum-neural-network-pqc = "qnn_pqc_agent.cli:main"
 [project.urls]
 Homepage = "https://github.com/abusuraihsakhri/quantum-neural-network-pqc"
 Repository = "https://github.com/abusuraihsakhri/quantum-neural-network-pqc.git"
+
+[tool.setuptools]
+packages = ["agents", "qnn_pqc_agent"]
+py-modules = ["cli", "enrichment", "simulator", "qnn_pqc_agent_app"]
