@@ -4,12 +4,25 @@ Command Line Interface for Quantum Neural Network Pqc.
 import argparse
 import csv
 import json
+import re
 import sys
 from agents.models import SystemTaskPayload
 from agents.supervisor import SystemSupervisor
 from agents.base import AuditLogger, SecurityException
 
 supervisor = SystemSupervisor(model_provider="mock")
+
+
+def _spreadsheet_safe(value):
+    """Protect formula-leading text while preserving ordinary signed numbers."""
+    if not isinstance(value, str):
+        return value
+    stripped = value.lstrip()
+    if stripped.startswith(("=", "+", "-", "@")):
+        if re.fullmatch(r"[+-]?(?:\\d+(?:\\.\\d*)?|\\.\\d+)(?:[Ee][+-]?\\d+)?", stripped):
+            return value
+        return "'" + value
+    return value
 
 
 def main(argv=None):
@@ -114,12 +127,7 @@ def main(argv=None):
                 )
                 dossier = supervisor.process_task(payload)
                 # Escape formula-leading cells before spreadsheet export.
-                row_dict = {
-                    key: ("'" + value if isinstance(value, str)
-                          and value.lstrip().startswith(("=", "+", "-", "@"))
-                          else value)
-                    for key, value in r.items() if key is not None
-                }
+                row_dict = {key: _spreadsheet_safe(value) for key, value in r.items() if key is not None}
                 row_dict["overall_urgency"] = dossier.overall_urgency.value
                 row_dict["integrity_status"] = dossier.integrity_status.value
                 row_dict["total_alerts"] = dossier.total_alerts
